@@ -1,0 +1,400 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{caption} % For customizing figure captions
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\usepackage{natbib}
+
+\setcounter{tocdepth}{2}  % Show sections and subsections (but not subsections)
+\usepackage{tocloft}       % For advanced TOC formatting
+
+\begin{document}
+
+\input{forside}
+
+\tableofcontents
+\newpage
+
+\section{Simulation of non-linear models}
+
+\subsection{SETAR (Self-Exciting Threshold Autoregressive Model)}
+\begin{figure}[H]
+\centering
+\includegraphics[width=5in]{plots/Part1_SETAR_stable_vs_stable.png}
+\caption{Comparison of stable regimes in SETAR(2;1,1) model. The plot shows the distinct dynamical behavior in different regimes separated by the threshold value (r=0)}
+\label{fig:setar_stable}
+\end{figure}
+
+\textbf{Model Specification:}
+\[
+X_t = 
+\begin{cases}
+\phi_1^{(1)} X_{t-1} + \varepsilon_t^{(1)} & \text{if } X_{t-1} \leq r \\
+\phi_1^{(2)} X_{t-1} + \varepsilon_t^{(2)} & \text{if } X_{t-1} > r
+\end{cases}
+\]
+\textbf{Key Features:}
+\begin{itemize}
+\item Piecewise linear structure with regime-dependent autoregressive parameters
+\item Exhibits limit cycle behavior and asymmetric dynamics
+\item Capable of capturing complex nonlinear patterns like amplitude-dependent frequency
+\item Threshold being continuous allows for sudden changes in dynamics
+\end{itemize}
+
+\subsection{IGAR (Integrated Generalized Autoregressive Model)}
+\begin{figure}[H]
+\centering
+\includegraphics[width=5in]{plots/Part1_IGAR_mean_shift.png}
+\caption{Mean shift analysis in IGAR(2;1) model showing intermittent behavior and regime switching. The plot demonstrates the model's ability to capture persistent shifts in mean levels.}
+\label{fig:igar_mean_shift}
+\end{figure}
+
+\textbf{Model Specification:}
+
+\[
+X_t = 
+\begin{cases}
+a_0^{(1)} + a_1^{(1)}X_{t-1} + \epsilon_t^{(1)} &\text{if } X_{t-1} \leq r \\
+a_0^{(2)} + a_1^{(2)}X_{t-1} + a_2^{(2)}X_{t-2} + \epsilon_t^{(2)} & \text{if } X_{t-1} > r \\
+\end{cases}
+\]
+
+\textbf{Key Features:}
+\begin{itemize}
+\item Incorporates both integer and fractional differencing components
+\item Exhibits long-memory properties and persistent volatility clusters
+\item Suitable for processes with structural breaks and regime changes
+\item Can model processes with time-varying persistence
+\end{itemize}
+
+\subsection{MMAR (Multifractal Markov Autoregressive Model)}
+\begin{figure}[H]
+\centering
+\includegraphics[width=5in]{plots/Part1_MMAR_mean_shift.png}
+\caption{Mean shift behavior in MMAR(2;1) model demonstrating multifractal scaling properties and volatility clustering. The plot shows the characteristic heavy-tailed distribution and persistence in volatility.}
+\label{fig:mmar_mean_shift}
+\end{figure}
+
+\textbf{Model Specification:}
+
+\[
+X_t = a_0^{(J_t)} + \sum_{i=1}^{k_{J_t}} a_i^{(J_t)}X_{t-i} + \epsilon_t^{(J_t)}
+\]
+where: \\
+\[
+J_t =
+\begin{cases}
+    1 & \text{with prob } p_1 \\
+    2 & \text{with prob } p_2
+\end{cases}
+\]
+$J_t$ is given by a markov chain.
+\\
+
+\textbf{Key Features:}
+\begin{itemize}
+\item Multifractal structure with time-varying volatility
+\item Captures volatility clustering and heavy-tailed distributions
+\item Appropriate for financial time series with heterogeneous volatility dynamics
+\item Exhibits scaling properties across different time horizons
+\end{itemize}
+
+\section{Conditional mean estimation}
+
+\subsection{Conditional mean estimation for SETAR model}
+\begin{figure}[H]
+\centering
+\includegraphics[width=5in]{plots/Part2.png}
+\caption{Conditional mean M(x) estimations using local regression with different bandwidths. The plot compares the theoretical conditional mean (red line) with empirical estimates using various bandwidth selections, demonstrating the bias-variance tradeoff in nonparametric estimation.}
+\label{fig:conditional_mean}
+\end{figure}
+
+\textbf{Theoretical Conditional Mean for SETAR(2;1,1):}
+\[
+M(x) = E\{X_{t+1}|X_t = x\} = 
+\begin{cases}
+\phi_1^{(1)} x & \text{if } x \leq r \\
+\phi_1^{(2)} x & \text{if } x > r
+\end{cases}
+\]
+
+\textbf{Bandwidth Selection Analysis:}
+\begin{itemize}
+\item \textbf{Small bandwidth:} High variance, captures local features but noisy
+\item \textbf{Optimal bandwidth:} Good balance between bias and variance
+\item \textbf{Large bandwidth:} Oversmoothing, misses threshold effects
+\end{itemize}
+
+\subsection{Bandwidth optimization}
+\begin{figure}[H]
+\centering
+\includegraphics[width=5in]{plots/Part2_h_anal.png}
+\caption{Optimal bandwidth selection based on MSE minimization. The plot shows the mean squared error as a function of bandwidth, with the minimum indicating the optimal trade-off between bias and variance in the local regression estimator.}
+\label{fig:bandwidth_optimization}
+\end{figure}
+
+\textbf{Methodology:} Cross-validation was used to select the optimal bandwidth that minimizes the mean squared error between the estimated and theoretical conditional means.
+
+\section{Cumulative Conditional Means Analysis}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=5in]{plots/Part3.png}
+\caption{Optimal bandwidth selection based on MSE minimization for cumulative conditional means. The plot demonstrates the asymptotic behavior of cumulative means and their convergence to the theoretical conditional expectation.}
+\label{fig:cumulative_means}
+\end{figure}
+
+\textbf{Cumulative Conditional Means Technique:}
+\[
+\hat{M}_n(x) = \frac{1}{n} \sum_{t=1}^n X_{t+1} \cdot I\{X_t \in (x-h, x+h)\}
+\]
+
+\textbf{Asymptotic Properties:}
+\begin{itemize}
+\item Consistency: $\hat{M}_n(x) \xrightarrow{} M(x)$ as $n \to \infty$
+\item Rate of convergence depends on bandwidth selection
+ Useful for verifying model specification and ergodicity
+\end{itemize}
+
+\newpage
+
+\section{Heat loss coefficient estimation}
+
+\subsection{Background}
+
+During the heating season, building heat loss is typically modeled assuming a constant heat-loss coefficient:
+\[
+\Phi_t = U_a(T^i_t - T^e_t) + \epsilon_t
+\]
+
+However, this assumption is problematic because convective heat transfer increases with wind speed, making $U_a$ wind-dependent. We therefore model the heat-loss coefficient as a nonparametric function of wind speed:
+\[
+\Phi_t = U_a(W_t)(T^i_t - T^e_t) + \epsilon_t
+\]
+
+Following the hint, we transform this to estimate $U_a(W_t)$ directly:
+\[
+U_a(W_t) = \frac{\Phi_t}{T^i_t - T^e_t}
+\]
+
+\subsection{Nonparametric estimate of $U_a(W)$}
+
+We estimate this function using local linear regression with bandwidth $h$ selected via leave-one-out cross-validation. Figure~\ref{fig:part4_optimal_bandwidth_cv} shows the cross-validation results. The optimal bandwidth $h = 0.30$ balances bias and variance: smaller values overfits with higher variance, while larger values oversmooth the relationship. The right panel demonstrates that $h = 0.10$ captures excessive noise, while $h = 0.75$ loses important features of the wind speed dependence.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{plots/part4_optimal_bandwidth_cv.png}
+    \caption{Bandwidth selection via cross-validation}
+    \label{fig:part4_optimal_bandwidth_cv}
+\end{figure}
+
+
+Figure~\ref{fig:part4_non_parametric_fit_with_95_confidence_intervals} presents the estimated heat-loss coefficient as a function of wind speed. The relationship exhibits clear nonlinearity consistent with convective heat transfer physics:
+
+The 95\% bootstrap confidence intervals (100 bootstrap samples) indicate reasonable precision throughout the wind speed range, with slightly wider intervals at extreme values likely due to data sparsity.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.7\linewidth]{plots/part4_non_parametric_fit_with_95_confidence_intervals.png}
+    \caption{Nonparametric estimate with 95\% bootstrap confidence intervals}
+    \label{fig:part4_non_parametric_fit_with_95_confidence_intervals}
+\end{figure}
+
+\subsection{Model comparison}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{plots/part4_constant_vs_wind_dependent_Ua.png}
+    \caption{Constant $U_a$ model (left) vs. wind-dependent $U_a(W)$ model (right)}
+    \label{fig:part4_constant_vs_wind_dependent_Ua}
+\end{figure}
+
+To demonstrate the value of this non-parametric approach, the wind-dependent model was compared against the baseline model assuming a constant $U_a$. As shown in Figure \ref{fig:part4_constant_vs_wind_dependent_Ua}, incorporating the wind speed dependency results in a dramatic improvement in model fit. The Root Mean Squared Error (RMSE) of the heat load prediction ($\Phi_t$) was reduced from 167.27 to 28.10, a 5x decrease. This confirms that a significant portion of the variance in the simple model's residuals was due to the unmodeled, systematic effect of wind speed.
+
+Futhermore, a residual analysis of the final wind-dependent model was performed to validate its adequacy (Figure \ref{fig:part4_residuals_vs_fitted_wind_dependent_Ua}). The residuals appear as a random, unstructured cloud centered around zero when plotted against both fitted values and wind speed, indicating that the model has successfully captured the systematic dependencies in the data. Furthermore, the Q-Q plot and histogram show that the residuals are reasonably approximated by a normal distribution, satisfying a key assumption for statistical inference.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{plots/part4_residuals_vs_fitted_wind_dependent_Ua.png}
+    \caption{Scatter, Q-Q plots, and histograms of the residuals vs fitted values}
+    \label{fig:part4_residuals_vs_fitted_wind_dependent_Ua}
+\end{figure}
+
+In conclusion, the non-parametric estimation successfully uncovered and quantified the significant non-linear relationship between wind speed and a building's heat loss coefficient. The resulting model is not only physically interpretable but also provides a substantially more accurate representation of the heat transfer process compared to a conventional constant-coefficient model.
+
+\section{ARMA models and their limitations}
+
+\subsection{Data description}
+
+The dataset consists of 800 observations of a univariate time series stored in \texttt{DataPart5.csv}. The series exhibit the following characteristics: mean = 2.232, standard deviation = 2.094, minimum = -5.062, maximum = 7.907, median = 2.013. The data shows near-zero skewness (0.007) indicating approximate symmetry, with slight excess kurtosis (0.325) suggesting marginally heavier tails than a normal distribution. This significant variability and the range spanning over 12 units may contribute to the nonlinear behavior detected in the residual analysis.
+
+Table \ref{tab:data_sample} shows the first 20 observations to illustrate the data characteristics.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}cc}
+    \toprule
+    Index & "x"(t) \\
+    \midrule
+    0 & 0 \\
+    1 & 0 \\
+    2 & 0.043702316341752 \\
+    3 & 0.244185370111243 \\
+    4 & 0.228372766999881 \\
+    5 & 0.818479789613394 \\
+    % 6 & 0.895566350253068 \\
+    ... & ... \\
+    \bottomrule
+\end{tabular}
+\caption{Sample from DataPart5.csv}
+\label{tab:data_sample}
+\end{table}
+
+\subsection{Model selection}
+
+Multiple ARMA models were evaluated using AIC and BIC criteria. The ARMA(0,3) model was selected as optimal based on the lowest AIC value.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+    \toprule
+    Model & AIC & BIC \\
+    \midrule
+    ARMA(0,0) & 3455.98 & 3465.35 \\
+    ARMA(1,0) & 3457.08 & 3471.13 \\
+    ARMA(0,1) & 3456.44 & 3470.50 \\
+    ARMA(1,1) & 3448.99 & 3467.72 \\
+    ARMA(2,0) & 3422.79 & 3441.53 \\
+    ARMA(0,2) & 3423.65 & 3442.39 \\
+    ARMA(2,1) & 3423.22 & 3446.64 \\
+    ARMA(1,2) & 3422.71 & 3446.14 \\
+    ARMA(2,2) & 3424.34 & 3452.45 \\
+    ARMA(3,0) & 3423.67 & 3447.09 \\
+    \textbf{ARMA(0,3)} & \textbf{3422.08} & \textbf{3445.51} \\
+    \bottomrule
+\end{tabular}
+\caption{ARMA Model Comparison}
+\label{tab:arma_comparison}
+\end{table}
+
+ARMA models up to order 10 were also fitted but none beat the ARMA(0,3) model, so they have been omitted from the table.
+
+\subsection{Model analysis}
+
+As we can see from Figure \ref{fig:part5_original_data_vs_fitted_values}, the original dataset looks a lot like white noise, but given that ARMA(0, 0) was the worst performing model (would be best if white noise), this hints that the original dataset is not white noise.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{plots/part5_original_data_vs_fitted_values.png}
+    \caption{Best and Worst Model Predictions}
+    \label{fig:part5_original_data_vs_fitted_values}
+\end{figure}
+
+From Figure \ref{fig:part5_data_residuals_acf} and \ref{fig:part5_acf_and_residuals}, we can see that the residuals start to look more like white noise, as the ACF is closer to zero and the residiauls look normally distributed around 0 in Figure \ref{fig:part5_acf_and_residuals}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{plots/part5_data_residuals_acf.png}
+    \caption{ACF of Original Data \& Residuals of ARMA(0,3)}
+    \label{fig:part5_data_residuals_acf}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{plots/part5_acf_and_residuals.png}
+    \caption{Q-Q Plot \& Distribution of Residuals of ARMA(0,3)}
+    \label{fig:part5_acf_and_residuals}
+\end{figure}
+
+However, the \href{https://en.wikipedia.org/wiki/Ljung%E2%80%93Box_test}{\underline{Ljung-Box test}} is performed to more rigorously check if the residuals are white noise. The Ljung-Box test results in Table \ref{tab:ljungbox} show high p-values (all $>$ 0.743) across all tested lags with the null hypothesis being that the residuals are white noise, which we fail to reject, meaning that the residuals are white noise. For comparison, it becomes clear that the original data is not white noise, as the p-values are much lower.
+
+\begin{table}[H]
+\centering
+\caption{Ljung-Box Test Results Comparison}
+\label{tab:ljungbox}
+\begin{tabular}{@{}ccc|ccc@{}}
+\toprule
+\multicolumn{3}{c|}{\textbf{ARMA(0,0,3) Model Residuals}} & \multicolumn{3}{c}{\textbf{Original Data}} \\
+\midrule
+Lag & LB Stat & p-value & Lag & LB Stat & p-value \\
+\midrule
+1 & 0.001 & 0.982 & 1 & 0.902 & 0.342 \\
+2 & 0.004 & 0.998 & 2 & 36.092 & 1.45e-08 \\
+3 & 0.049 & 0.997 & 3 & 38.167 & 2.61e-08 \\
+4 & 0.368 & 0.985 & 4 & 38.428 & 9.14e-08 \\
+5 & 0.998 & 0.963 & 5 & 38.898 & 2.49e-07 \\
+6 & 1.131 & 0.980 & 6 & 38.913 & 7.44e-07 \\
+7 & 1.274 & 0.989 & 7 & 39.353 & 1.67e-06 \\
+8 & 1.351 & 0.995 & 8 & 39.381 & 4.18e-06 \\
+9 & 5.964 & 0.743 & 9 & 44.406 & 1.19e-06 \\
+10 & 5.999 & 0.815 & 10 & 44.423 & 2.76e-06 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Testing for non-linear dependencies}
+
+While the Ljung-Box test indicates that the residuals are linearly uncorrelated (i.e., they resemble white noise from a linear perspective), this does not guarantee they are truly independent. Hidden non-linear dependencies could still exist, which standard linear tests are not designed to detect.
+
+Therefore, we instead use the Lag-Dependent Function (LDF) \citep{ldf} to test for such non-linear dependencies. The LDF is a non-parametric method that generalizes the concept of autocorrelation. Instead of measuring linear correlation, it quantifies the dependency between a series and its past values by fitting a flexible, non-parametric smooth function $\hat{f}_k$. The strength of this dependency is measured by a non-linear coefficient of determination, $\tilde{R}^2_{0,(k)}$, defined as:
+
+\begin{equation}
+    \tilde{R}^2_{0,(k)} = \frac{\hat{\sigma}^2(\epsilon_t) - \hat{\sigma}^2(\epsilon_t | \hat{f}_k(\epsilon_{t-k}))}{\hat{\sigma}^2(\epsilon_t)}
+\end{equation}
+
+where $\hat{\sigma}^2(\epsilon_t)$ is the variance of the residuals and $\hat{\sigma}^2(\epsilon_t | \hat{f}_k(\epsilon_{t-k}))$ is the residual variance after fitting the non-parametric model on the lagged values $\epsilon_{t-k}$. The LDF for a given lag $k$ is then constructed by combining this magnitude with the direction of the relationship:
+
+\begin{equation}
+    LDF(k) = \text{sign}(\hat{f}_k(b) - \hat{f}_k(a)) \sqrt{[\tilde{R}^2_{0,(k)}]^{+}}
+\end{equation}
+
+Here, the $\text{sign}(\cdot)$ term captures the overall trend of the non-linear function from its start ($a$) to its end ($b$).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{plots/part5_ldf_with_insets.png}
+    \caption{LDF plot of the ARMA(0,3) residuals.}
+    \label{fig:part5_ldf_plot}
+\end{figure}
+
+The LDF plot in Figure \ref{fig:part5_ldf_plot} reveals a significant non-linear autocorrelation at lag 2, as its value exceeds the 95\% confidence interval for an independent process. Inspecting the insets provides compelling visual evidence for this finding:
+\begin{itemize}
+    \item For a given lag $k$, the residuals ($\epsilon_t$) are plotted against their lagged counterparts ($\epsilon_{t-k}$).
+    \item Instead of a formless, random cloud of points expected from white noise (for which a simple line, as seen for lag 20, would be the best fit), the plot for lag 2 shows a distinct parabolic structure. The curved red line, representing the non-parametric fit $\hat{f}_2$, clearly captures more of the data's structure than a straight line would. This indicates that the value and sign of the past residual non-linearly influence the current residual.
+\end{itemize}
+This is evidence that, although the residuals are linearly uncorrelated, they are not independent. A hidden nonlinear dynamic remains in the data that the linear ARMA(0,3) model failed to capture.
+
+\subsection{Proposed model structure:}
+
+The LDF analysis of the ARMA residuals clearly indicated that a linear model is insufficient, pointing towards a non-linear, regime-switching structure. To identify the correct structure, four distinct non-linear models were fitted and evaluated: Self-Exciting Threshold Autoregressive (SETAR), Smooth Transition Autoregressive (STAR), Markov-Switching Autoregressive (MMAR), and Independent Governed Autoregressive (IGAR). The comparative results are displayed in Figure \ref{fig:part5_all_models_comparison}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{plots/part5_all_models_with_ldf_star_setar.png}
+    \caption{Comparison of all models}
+    \label{fig:part5_all_models_with_ldf_star_setar}
+\end{figure}
+
+Threshold-based models (SETAR/STAR): These models, which switch regimes based on a past value of the series itself, fail to adequately capture the data's dynamics. As shown above in Figure \ref{fig:part5_all_models_with_ldf_star_setar}, their residuals exhibit a strong, significant non-linear dependency at lag 2. This indicates that while they attempt to address the non-linearity, they are ultimately misspecified.
+
+Stochastic-switching models (MMAR/IGAR): These models, which assume the regime is governed by a latent, unobserved stochastic process, are far more successful. The LDF plots for both MMAR and IGAR (bottom panel) show no remaining significant non-linear dependencies, indicating their residuals are effectively "white noise" from both a linear and non-linear perspective. As shown below in Figure \ref{fig:part5_all_models_with_ldf_mmar_igar}, this is the case.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{plots/part5_all_models_with_ldf_mmar_igar.png}
+    \caption{Comparison of all models}
+    \label{fig:part5_all_models_with_ldf_mmar_igar}
+\end{figure}
+
+Among the successful models, the IGAR model provides a markedly superior fit, achieving a Mean Squared Error (MSE) of 0.82. This is a substantial improvement over the MMAR model (1.96) and is less than one-third the error of the SETAR/STAR models (~2.5).
+
+Therefore, the proposed model structure is an Independent Governed Autoregressive (IGAR) model. The data-generating process is best described not by deterministic thresholds, but by random switches between different autoregressive states.
+
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
