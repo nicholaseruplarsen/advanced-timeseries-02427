@@ -1,0 +1,22 @@
+[project]
+name = "advanced-timeseries-02427"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Nicholas Erup Larsen", email = "nicholaserup@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "ipykernel>=7.0.1",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.3",
+    "scikit-learn>=1.7.2",
+    "scipy>=1.16.2",
+    "statsmodels>=0.14.5",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.4,<0.9.0"]
+build-backend = "uv_build"
