@@ -3,8 +3,8 @@
 import numpy as np
 from statsmodels.nonparametric.smoothers_lowess import lowess
 from sklearn.utils import resample
-from smooth_localreg import smooth_localreg
-from estimator import estimator
+from .smooth_localreg import smooth_localreg
+from .estimator import estimator
 
 def leave_one_out_equiv(D):
     # D: np.array shape (n, 2), col0: y, col1: x
