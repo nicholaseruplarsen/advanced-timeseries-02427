@@ -1,0 +1,162 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{geometry}
+% \geometry{a4paper, margin=1.5in}
+\geometry{a4paper}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{float}
+\usepackage{fancyhdr}
+\setlength{\headheight}{14pt} % ensure enough space for fancyhdr header
+\usepackage{tikz}
+
+\begin{document}
+
+\input{forside}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+This report details the results of a series of exercises focused on parameter estimation in nonlinear time series models. The main topics covered are the prediction error method for a Self-Exciting Threshold Autoregressive (SETAR) model, the state-space formulation and simulation of a doubly stochastic system, and the application of the Extended Kalman Filter (EKF) for online parameter estimation. The objective is to implement these methods, analyze their performance, and understand their theoretical underpinnings.
+
+\section{Parameter Estimation of a SETAR Model}
+\subsection{The Prediction Error Method}
+The prediction error method, also known as conditional least squares, is a general technique for parameter estimation. The core idea is to find the parameter vector $\theta$ that minimizes the sum of squared one-step prediction errors. The loss function is defined as \citep{tong1990nonlinear}:
+\begin{equation}
+    Q_N(\theta) = \sum_{j=1}^{N} (y_j - E_\theta(y_j|\mathcal{Y}_{j-1}))^2,
+\end{equation}
+where $E_\theta(y_j|\mathcal{Y}_{j-1})$ is the conditional expectation of $y_j$ given the past observations $\mathcal{Y}_{j-1}$. The parameter estimates $\hat{\theta}$ are found by solving $\frac{\partial Q_N}{\partial \theta_i} = 0$.
+
+In this exercise, we apply this method to a SETAR model with two regimes, a threshold $r=0$, and order 1 in each regime. The model is given by:
+\begin{equation}
+y_t = 
+\begin{cases}
+    p_1 y_{t-1} + \varepsilon_t & \text{if } y_{t-1} \le r \\
+    p_2 y_{t-1} + \varepsilon_t & \text{if } y_{t-1} > r
+\end{cases}
+\end{equation}
+where $\varepsilon_t \sim \mathcal{N}(0, \sigma^2)$. The one-step prediction is the conditional expectation $E_\theta(y_t|\mathcal{Y}_{t-1})$, which for this model is simply the deterministic part. The parameter vector to be estimated is $\theta = [p_1, p_2]^T$.
+
+\subsection{Estimation Results}
+A time series of length $N=3000$ was simulated from the SETAR model with true parameters $p_1 = 0.5$, $p_2 = -0.5$, and $\sigma=1.0$. The simulated series is shown in Figure \ref{fig:setar_sim}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plots/simulated_setar_time_series.png}
+    \caption{Simulated time series from a SETAR(2;1,1) model with parameters $p_1=0.5$ and $p_2=-0.5$.}
+    \label{fig:setar_sim}
+\end{figure}
+
+The loss function $Q_N(\theta)$ was minimized numerically using the Nelder-Mead algorithm, starting from an initial guess of $\theta_0 = [0, 0]^T$. The estimated parameters were found to be:
+\begin{itemize}
+    \item Estimated $\hat{p}_1$: 0.4739 (True: 0.5)
+    \item Estimated $\hat{p}_2$: -0.5013 (True: -0.5)
+\end{itemize}
+The estimates are very close to the true values, demonstrating the effectiveness of the prediction error method for this model given a sufficient amount of data.
+
+\subsection{Loss Function Surface Analysis}
+To understand how the number of observations $N$ affects the estimation, the loss function $Q_N(p_1, p_2)$ was evaluated over a grid of parameter values for different subsets of the data. The resulting contour plots are shown in Figure \ref{fig:loss_contours}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{plots/setar_loss_surface_contours.png}
+    \caption{Contour plots of the loss function $Q_N(p_1, p_2)$ for different data subsets. The true parameters are marked with a green dot and the full-data estimate with a red dot on the top-left plot.}
+    \label{fig:loss_contours}
+\end{figure}
+
+The plots clearly illustrate the principles of asymptotic theory.
+\begin{itemize}
+    \item \textbf{Large N (1:3000):} With the full dataset, the loss surface has a well-defined, sharp, and roughly elliptical minimum located very close to the true parameter values. This indicates that the estimate is precise and has low variance.
+    \item \textbf{Smaller N (1:300, 1:30):} As the number of observations decreases, the minimum of the loss function becomes wider and less defined. This signifies greater uncertainty in the parameter estimates. For $N=30$, the surface is very flat, and the location of the minimum is less reliable.
+    \item \textbf{Different Data Segments:} Comparing subsets of the same size (e.g., 1:300 vs. 1001:1300) shows that the exact shape and location of the minimum depend on the specific realization of the process, but the general relationship between $N$ and the sharpness of the minimum holds.
+\end{itemize}
+In conclusion, these visualizations confirm that more data leads to a more informative loss function, resulting in more accurate and precise parameter estimates.
+
+\section{Doubly Stochastic Systems}
+\subsection{State-Space Formulation}
+A doubly stochastic system involves randomness in both the state transition and the observation process. We consider a random coefficient AR(1) model:
+\begin{align}
+    y_t &= \phi_t y_{t-1} + e_t, \quad e_t \sim \mathcal{N}(0, \sigma_e^2) \\
+    \phi_{t+1} &= \phi_t + w_t, \quad w_t \sim \mathcal{N}(0, \sigma_w^2)
+\end{align}
+Here, the autoregressive parameter $\phi_t$ is itself a stochastic process (a random walk), making the overall process non-stationary.
+
+This model can be written in a linear state-space form with a time-varying observation matrix. Let the state be $\alpha_t = \phi_t$.
+\begin{itemize}
+    \item \textbf{State (Transition) Equation:} $\alpha_{t+1} = \alpha_t + w_t$. This is linear with $T_t=1$.
+    \item \textbf{Observation Equation:} $y_t = y_{t-1} \alpha_t + e_t$. This is linear in the state $\alpha_t$, with a time-varying observation matrix $Z_t = y_{t-1}$.
+\end{itemize}
+Because $Z_t$ depends on past observations, the model is conditionally linear, making it suitable for analysis with tools like the Kalman filter.
+
+\subsection{Simulation}
+The model was simulated for $N=1000$ steps with parameters $\phi_0=0.5$, $\sigma_w=0.05$, and $\sigma_e=1.0$. The resulting series for $y_t$ and the hidden state $\phi_t$ are shown in Figure \ref{fig:doubly_stochastic}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{plots/simulated_doubly_stochastic_ar1.png}
+    \caption{Simulation of a doubly stochastic AR(1) model. The top panel shows the observed series $y_t$, and the bottom panel shows the unobserved, time-varying parameter $\phi_t$.}
+    \label{fig:doubly_stochastic}
+\end{figure}
+
+The simulation illustrates how the dynamics of the observed process $y_t$ change over time, driven by the evolution of the hidden parameter $\phi_t$. The slow drift in $\phi_t$ introduces periods of different dynamic behavior in $y_t$.
+
+\section{Extended Kalman Filter for Parameter Estimation}
+\subsection{Model Augmentation}
+The Extended Kalman Filter (EKF) can be used to estimate parameters by augmenting the state vector. Consider the simple linear state-space model:
+\begin{align}
+    x_{t+1} &= a x_t + v_t, \quad v_t \sim \mathcal{N}(0, \sigma_v^2) \\
+    y_t &= x_t + e_t, \quad e_t \sim \mathcal{N}(0, \sigma_e^2)
+\end{align}
+To estimate the unknown parameter $a$, we treat it as a state that is constant over time, i.e., $a_{t+1} = a_t$. The augmented state vector is $z_t = [x_t, a_t]^T$. This leads to a nonlinear state-space model:
+\begin{itemize}
+    \item \textbf{State (Transition) Equation:} $z_{t+1} = \begin{bmatrix} x_{t+1} \\ a_{t+1} \end{bmatrix} = \begin{bmatrix} a_t x_t \\ a_t \end{bmatrix} + \begin{bmatrix} v_t \\ 0 \end{bmatrix} = f(z_t) + \eta_t$. The function $f(z_t)$ is nonlinear due to the product $a_t x_t$.
+    \item \textbf{Observation Equation:} $y_t = \begin{bmatrix} 1 & 0 \end{bmatrix} z_t + e_t$. This remains linear.
+\end{itemize}
+The EKF linearizes the state transition function at each step to propagate the state estimate and its covariance. We simulated 20 time series of length $N=100$ from this model with true parameter $a=0.4$ and variances $\sigma_v^2=\sigma_e^2=1$. An example is shown in Figure \ref{fig:sim_y}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{plots/example_simulated_time_series.png}
+    \caption{An example of a simulated time series $y_t$ used for EKF estimation.}
+    \label{fig:sim_y}
+\end{figure}
+
+\subsection{EKF Convergence Analysis}
+We applied the EKF to all 20 simulations to estimate $a$. We investigated the filter's convergence under four different configurations of filter process noise ($\sigma_v^2$) and initial parameter variance, each tested with two different initial values for the parameter ($a_{init}=0.5$ and $a_{init}=-0.5$). The results are shown in Figure \ref{fig:ekf_results}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{plots/ekf_parameter_estimation.png}
+    \caption{EKF estimates of parameter $a$ across 20 simulations for different filter settings. The true value $a=0.4$ is marked by the red dashed line.}
+    \label{fig:ekf_results}
+\end{figure}
+
+The plots reveal several key properties of the EKF for parameter estimation:
+\begin{itemize}
+    \item \textbf{Effect of Filter Process Noise ($\sigma_v^2$):} Using a larger process noise variance in the filter (e.g., $\sigma_v^2=10$, left column) than the true value ($\sigma_v^2=1$) allows the filter to adapt more quickly. This acts like a larger learning rate, leading to faster convergence to the true parameter, even from a poor initial guess.
+    \item \textbf{Effect of Initial Parameter Variance:} A higher initial variance for the parameter estimate (e.g., 10, bottom two rows) signals greater uncertainty in the initial guess. This results in a larger initial Kalman gain for the parameter state, causing more aggressive updates early on and leading to faster convergence.
+    \item \textbf{Effect of Initial Parameter Guess ($a_{init}$):} Starting further from the true value, especially with the wrong sign ($a_{init}=-0.5$, right column), poses a greater challenge. With conservative filter settings (low $\sigma_v^2$ and low initial variance), the estimates may converge very slowly or even get stuck far from the true value.
+\end{itemize}
+
+In summary, for robust convergence, it appears beneficial to configure the EKF with a slightly inflated process noise variance and a high initial variance for the parameters being estimated. This makes the filter more adaptive and less sensitive to the initial guess. A second, corrected implementation of the EKF yielded qualitatively identical results, reinforcing these conclusions.
+
+\section{Conclusion}
+This report successfully demonstrated the application of key parameter estimation techniques for nonlinear time series. The prediction error method proved effective for a SETAR model, with the analysis of the loss surface visually confirming asymptotic properties of the estimator. A doubly stochastic model was formulated in state-space form, highlighting its conditionally linear structure. Finally, the Extended Kalman Filter was used for online parameter estimation, where its convergence properties were shown to be highly dependent on the tuning of filter variances, providing practical insights into its implementation.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
